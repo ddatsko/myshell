@@ -6,7 +6,7 @@
 
 void setPwd();
 
-bool executableExistsInPath(std::string filename);
+void freeEnvp(char **envp);
 
 void exportVariable(std::string varName);
 

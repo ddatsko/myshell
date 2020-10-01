@@ -1,4 +1,4 @@
-#include "environment.h"
+#include "myshell/environment.h"
 
 #include <string>
 #include <vector>
@@ -7,16 +7,12 @@
 #include <unistd.h>
 #include <iostream>
 
-//std::map<std::string, std::string> globalEnvp;
+
 std::map<std::string, std::string> childEnvp;
 
 
 void exportVariable(std::string varName) {
-//    if (globalEnvp.find(varName) == globalEnvp.end()) {
-//        globalEnvp[varName] = "";
-//    }
-//    childEnvp[varName] = globalEnvp[varName];
-    char* varValue = getenv(varName.c_str());
+    char *varValue = getenv(varName.c_str());
     if (varValue == nullptr) {
         setenv(varName.c_str(), "", true);
         childEnvp[varName] = "";
@@ -42,27 +38,11 @@ void setPwd() {
 
 
 std::string getVariableValue(std::string varName) {
-    char* varValue = getenv(varName.c_str());
+    char *varValue = getenv(varName.c_str());
     if (varValue == nullptr) {
         return "";
     }
     return varValue;
-}
-
-char **getEnvpForChild() {
-    char **envp = (char **) malloc(sizeof(char *) * childEnvp.size() + 1);
-    int variableNum = 0;
-    for (auto &s: childEnvp) {
-        char *var = (char *) malloc(sizeof(char) * (s.first.size() + s.second.size()));
-        memcpy(var, s.first.c_str(), s.first.size());
-        var[s.first.size()] = '=';
-        memcpy(var + s.first.size() + 1, s.second.c_str(), s.second.size());
-        envp[variableNum] = var;
-        variableNum++;
-        free(var);
-    }
-    envp[variableNum] = nullptr;
-    return envp;
 }
 
 
@@ -85,7 +65,41 @@ std::pair<std::string, std::string> splitByEqualSign(const char *str) {
     return res;
 }
 
+void freeEnvp(char **envp) {
+    int i = 0;
+    while (envp[i] != nullptr) {
+        free(envp[i]);
+        i++;
+    }
+    free(envp);
+}
+
+char **getEnvpForChild() {
+    char **envp = (char **) malloc(sizeof(char *) * childEnvp.size() + 1);
+    int variableNum = 0;
+    for (auto &s: childEnvp) {
+        char *var = (char *) malloc(sizeof(char) * (s.first.size() + s.second.size() + 1));
+        memcpy(var, s.first.c_str(), s.first.size());
+        var[s.first.size()] = '=';
+        memcpy(var + s.first.size() + 1, s.second.c_str(), s.second.size());
+        envp[variableNum] = var;
+        variableNum++;
+    }
+    envp[variableNum] = nullptr;
+    return envp;
+}
+
 
 void initEnvironmentVariables() {
+    char **variable = environ;
+    while (*variable != nullptr) {
+        auto varPair = splitByEqualSign(*variable);
+        exportVariable(varPair.first);
+        variable++;
+    }
     setVariable("?", "0");
+
+    auto path = getVariableValue("PATH");
+    path += ":" + getVariableValue("PWD");
+    setVariable("PATH", path);
 }

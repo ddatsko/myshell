@@ -1,8 +1,11 @@
 #include <iostream>
-#include "builtInCommands.h"
+#include "myshell/builtInCommands.h"
 #include <cstring>
 #include <unistd.h>
-#include "environment.h"
+#include <fstream>
+#include <myshell/utils.h>
+#include "myshell/environment.h"
+#include "myshell/commandsRunning.h"
 
 std::map<std::string, std::function<int(int, const char **)>> builtInCommands = std::map<std::string, std::function<int(
         int, const char **)>>{};
@@ -116,6 +119,22 @@ int mexit(int argc, const char **argv) {
 }
 
 int runInThisInterpreter(int argc, const char **argv) {
+    if (argc == 1 || argc > 2) {
+        std::cout << argv[0] << " : Invalid number of arguments" << std::endl;
+        return -1;
+    }
+    // Save cinbuf for restoring
+    auto cinbuf = std::cin.rdbuf();
+    std::ifstream in(argv[1]);
+    std::cin.rdbuf(in.rdbuf());
+    std::string strBuf;
+
+    std::vector<std::string> arguments;
+    while (std::getline(std::cin, strBuf)) {
+        preProcessLine(strBuf.c_str(), arguments);
+        processInputLine(arguments);
+    }
+    std::cin.rdbuf(cinbuf);
     return 0;
 }
 
@@ -146,5 +165,4 @@ void registerBuildInCommands() {
     builtInCommands["mcd"] = mcd;
     builtInCommands["mexit"] = mexit;
     builtInCommands["."] = runInThisInterpreter;
-
 }
