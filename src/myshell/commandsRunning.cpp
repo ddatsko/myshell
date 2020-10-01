@@ -13,10 +13,7 @@ void runChildProcess(const char *path, char *const *argv, char *const *envp) {
         return;
     }
     if (pid == 0) {
-        if (execvpe(path, argv, envp) != 0) {
-            if (errno == ENOEXEC)
-                execvpe("myshell", argv, envp);
-        }
+        execvpe(path, argv, envp);
     }
     int returnStatus;
     wait(&returnStatus);
