@@ -131,8 +131,10 @@ int runInThisInterpreter(int argc, const char **argv) {
 
     std::vector<std::string> arguments;
     while (std::getline(std::cin, strBuf)) {
-        preProcessLine(strBuf.c_str(), arguments);
-        processInputLine(arguments);
+        std::vector<std::vector<std::string>> pipelineBlocks;
+        std::vector<std::map<std::string, std::string>> filesRedirection;
+        preProcessLine(strBuf.c_str(), pipelineBlocks, filesRedirection);
+        processInputLine(pipelineBlocks, filesRedirection);
     }
     std::cin.rdbuf(cinbuf);
     return 0;
