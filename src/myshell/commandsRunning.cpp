@@ -4,8 +4,7 @@
 #include <map>
 #include "myshell/environment.h"
 #include <iostream>
-#include <sstream>
-#include <fcntl.h>
+#include <myshell/utils.h>
 #include "myshell/builtInCommands.h"
 
 int runChildProcess(const char *path, char *const *argv, char *const *envp, int inPipeIn, int inPipeOut, int outPipeIn,
@@ -33,56 +32,15 @@ int runChildProcess(const char *path, char *const *argv, char *const *envp, int 
         if (outPipeIn != 1)
             close(outPipeIn);
 
-
-        for (auto &redirection: filesRedirection) {
-            int fd1, fd2;
-            std::string filename = redirection.first;
-
-
-
-            if (redirection.second == "0") {
-                redirection.second = "&0";
-                fd1 = open(redirection.first.c_str(), O_RDWR);
-                if (fd1 < 0) {
-                    std::cerr << "Error while opening file " << redirection.first << std::endl;
-                    exit(EXIT_FAILURE);
-                }
-            } else {
-                std::stringstream ss{filename};
-                ss >> fd1;
-            }
-            if (fd1 == 0 and not (redirection.first.size() == 1 and redirection.first[0] == '0')) {
-                exit(EXIT_FAILURE);
-            }
-
-            if (redirection.second[0] == '&') {
-
-                redirection.second.erase(0, 1);
-                std::stringstream ss2{redirection.second};
-                ss2 >> fd2;
-
-                if (fd2 == 0 and redirection.second != "0") {
-                    std::cerr << "HERE" << fd2 << std::endl;
-                    exit(EXIT_FAILURE);
-                }
-            } else {
-                fd2 = open(redirection.second.c_str(), O_CREAT | O_WRONLY |O_TRUNC);
-                if (fd2 < 0) {
-                    std::cerr << "Could not open file " << redirection.second;
-                    exit(EXIT_FAILURE);
-                }
-            }
-            if (fd2 == 0) std::swap(fd1, fd2);
-            if (dup2(fd2, fd1) != fd1) {
-                std::cerr << "Error whie redirecting files" << std::endl;
-                exit(EXIT_FAILURE);
-            }
-            std::cout << "HRE";
-
+        std::map<int, int> fdsMapping;
+        if (replaceDescriptors(filesRedirection, fdsMapping) != 0) {
+            exit(EXIT_FAILURE);
         }
 
 
         execvpe(path, argv, envp);
+        restoreFileDescriptors(fdsMapping);
+        std::cerr << "Error while running child process" << std::endl;
         exit(EXIT_FAILURE);
     }
     if (leave)
@@ -157,7 +115,10 @@ processOneBlock(std::vector<std::string> &arguments, int inPipeIn, int inPipeOut
 
 
     if (builtInCommands.find(arguments[0]) != builtInCommands.end()) {
+        std::map<int, int> fdsMapping;
+        replaceDescriptors(filesRedirection, fdsMapping);
         setVariable("?", std::to_string(builtInCommands[arguments[0]](processArgs.size() - 1, processArgs.data())));
+        restoreFileDescriptors(fdsMapping);
         return 0;
     } else {
         std::string arg = arguments[0];

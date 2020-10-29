@@ -25,6 +25,9 @@ int myCat(CommandLineArguments &args) {
         }
         fileDescriptors.push_back(fd);
     }
+    if (fileDescriptors.empty()) {
+        fileDescriptors.emplace_back(0);
+    }
     for (auto &descriptor : fileDescriptors) {
         if (readPrintFile(descriptor, args.displayInvisible) != 0) {
             std::cout << "Error while processing file with fd " << fd << std::endl;

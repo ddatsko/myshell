@@ -6,7 +6,10 @@
 #include <cstring>
 #include <unistd.h>
 #include <iostream>
-
+#include <myshell/utils.h>
+#include "myshell/commandsRunning.h"
+#include <filesystem>
+#include <fcntl.h>
 
 std::map<std::string, std::string> childEnvp;
 
@@ -37,7 +40,59 @@ void setPwd() {
 }
 
 
+ssize_t readBuf(int fd, char *buf, ssize_t size, int *status) {
+    ssize_t readBytes = 0;
+
+    if (buf == nullptr || status == nullptr) return -1;
+    while (readBytes < size) {
+        ssize_t nRead = read(fd, buf + readBytes, size - readBytes);
+        if (nRead == -1) {
+            if (errno == EINTR) continue;
+            *status = errno;
+            return -1;
+        }
+        if (nRead == 0) {
+            return readBytes;
+        }
+        readBytes += nRead;
+    }
+    return readBytes;
+}
+
+char buf[4096];
+
 std::string getVariableValue(std::string varName) {
+    std::cout << varName << std::endl;
+    if (!varName.empty()) {
+        if (varName[0] == '(' and varName[varName.size() - 1] == ')') {
+            varName.erase(0, 1);
+            varName.erase(varName.size() - 1, 1);
+            std::vector<std::vector<std::string>> pipelineBlocks;
+            std::vector<std::map<std::string, std::string>> filesRedirection;
+            preProcessLine(varName + "", pipelineBlocks, filesRedirection);
+
+            char filename[L_tmpnam];
+            std::tmpnam(filename);
+            int temp = open(filename, O_CREAT | O_RDWR | O_TRUNC);
+
+
+            int reserveFd = dup(1);
+            if (dup2(temp, 1) != 1) {
+                std::cerr << "Error while redirecting output" << std::endl;
+            }
+            processInputLine(pipelineBlocks, filesRedirection);
+            if (dup2(reserveFd, 1) != 1) {
+                std::cerr << "Error while redirecting output" << std::endl;
+            }
+            close(reserveFd);
+            lseek(temp, 0, 0);
+
+            int status;
+            readBuf(temp, buf, 4095, &status);
+            close(temp);
+            return std::string(buf);
+        }
+    }
     char *varValue = getenv(varName.c_str());
     if (varValue == nullptr) {
         return "";

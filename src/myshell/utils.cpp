@@ -3,6 +3,82 @@
 #include <glob.h>
 #include <map>
 #include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
+
+
+int isValidFd(int fd)
+{
+    return fcntl(fd, F_GETFL) != -1 || errno != EBADF;
+}
+
+
+int replaceDescriptors(std::map<std::string, std::string> &filesRedirection, std::map<int, int>& fdsMapping) {
+    for (auto &redirection: filesRedirection) {
+        int fd1, fd2;
+        std::string filename = redirection.first;
+
+
+        if (redirection.second == "0") {
+            redirection.second = "&0";
+            fd1 = open(redirection.first.c_str(), O_RDWR);
+            if (fd1 < 0) {
+                std::cerr << "Error while opening file " << redirection.first << std::endl;
+                return -1;
+            }
+        } else {
+            std::stringstream ss{filename};
+            ss >> fd1;
+        }
+        if (fd1 == 0 and not(redirection.first.size() == 1 and redirection.first[0] == '0')) {
+            return -1;
+        }
+
+        if (redirection.second[0] == '&') {
+
+            redirection.second.erase(0, 1);
+            std::stringstream ss2{redirection.second};
+            ss2 >> fd2;
+
+            if (fd2 == 0 and redirection.second != "0") {
+                std::cerr << "HERE" << fd2 << std::endl;
+                return -1;
+            }
+        } else {
+            fd2 = open(redirection.second.c_str(), O_CREAT | O_WRONLY | O_TRUNC);
+            if (fd2 < 0) {
+                std::cerr << "Could not open file " << redirection.second;
+                return -1;
+            }
+        }
+        if (fd2 == 0) std::swap(fd1, fd2);
+
+        int reservedFd;
+        bool replaced;
+        if (isValidFd(fd1)) {
+            reservedFd = dup(fd1);
+            replaced = true;
+        }
+        if (dup2(fd2, fd1) != fd1) {
+            std::cerr << "Error whie redirecting files" << std::endl;
+            return -1;
+        }
+        if (replaced) {
+            fdsMapping[reservedFd] = fd1;
+
+        }
+
+    }
+    return 0;
+
+}
+
+int restoreFileDescriptors(std::map<int,int> &fdsMapping) {
+    for (auto &descriptors: fdsMapping) {
+        dup2(descriptors.first, descriptors.second);
+    }
+    return 0;
+}
 
 
 struct parseState {
