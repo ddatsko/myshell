@@ -62,7 +62,7 @@ int replaceDescriptors(std::map<std::string, std::string> &filesRedirection, std
                 return -1;
             }
         } else {
-            fd2 = open(redirection.second.c_str(), O_CREAT | O_WRONLY | O_TRUNC);
+            fd2 = open(redirection.second.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0666);
             if (fd2 < 0) {
                 std::cerr << "Could not open file " << redirection.second;
                 return -1;
