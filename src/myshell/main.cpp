@@ -7,7 +7,7 @@
 #include <myshell/utils.h>
 #include "myshell/commandsRunning.h"
 #include <csignal>
-#include <iostream>
+
 
 
 int main(int argc, const char **argv) {
@@ -30,14 +30,10 @@ int main(int argc, const char **argv) {
         if (buf == nullptr) break;
         if (strlen(buf) > 0)
             add_history(buf);
-        preProcessLine(buf, pipelineBlocks, filesRedirection);
-//        for (const auto& i: pipelineBlocks[0]) {
-//            std::cout << i << " ";
-//        }
-//        std::cout << std::endl;
-//        for (auto i: filesRedirection[0]) {
-//            std::cout << i.first << ">" << i.second << std::endl;
-//        }
+        if (preProcessLine(buf, pipelineBlocks, filesRedirection) != 0) {
+            free(buf);
+            continue;
+        }
 
         processInputLine(pipelineBlocks, filesRedirection);
         pipelineBlocks.clear();

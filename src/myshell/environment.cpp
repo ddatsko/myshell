@@ -62,7 +62,6 @@ ssize_t readBuf(int fd, char *buf, ssize_t size, int *status) {
 char buf[4096];
 
 std::string getVariableValue(std::string varName) {
-    std::cout << varName << std::endl;
     if (!varName.empty()) {
         if (varName[0] == '(' and varName[varName.size() - 1] == ')') {
             varName.erase(0, 1);

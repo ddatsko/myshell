@@ -7,13 +7,12 @@
 #include <unistd.h>
 
 
-int isValidFd(int fd)
-{
+int isValidFd(int fd) {
     return fcntl(fd, F_GETFL) != -1 || errno != EBADF;
 }
 
 
-int replaceDescriptors(std::map<std::string, std::string> &filesRedirection, std::map<int, int>& fdsMapping) {
+int replaceDescriptors(std::map<std::string, std::string> &filesRedirection, std::map<int, int> &fdsMapping) {
     for (auto &redirection: filesRedirection) {
         int fd1, fd2;
         std::string filename = redirection.first;
@@ -41,7 +40,6 @@ int replaceDescriptors(std::map<std::string, std::string> &filesRedirection, std
             ss2 >> fd2;
 
             if (fd2 == 0 and redirection.second != "0") {
-                std::cerr << "HERE" << fd2 << std::endl;
                 return -1;
             }
         } else {
@@ -73,7 +71,7 @@ int replaceDescriptors(std::map<std::string, std::string> &filesRedirection, std
 
 }
 
-int restoreFileDescriptors(std::map<int,int> &fdsMapping) {
+int restoreFileDescriptors(std::map<int, int> &fdsMapping) {
     for (auto &descriptors: fdsMapping) {
         dup2(descriptors.first, descriptors.second);
     }
@@ -86,6 +84,7 @@ struct parseState {
     bool insideSingleQuotes = false;
     bool afterEscape = false;
     bool inVariable = false;
+    bool openVarBracer = false;
     std::string curVariable;
     std::string curRedirection;
     std::map<std::string, std::string> filesRedirection;
@@ -153,6 +152,34 @@ preProcessLine(std::string &&line, std::vector<std::vector<std::string>> &pipeLi
             curState.afterEscape = true;
             continue;
         }
+        if (curState.openVarBracer) {
+            curState.curVariable += c;
+            if (curState.insideSingleQuotes and c == '\'') {
+                curState.insideSingleQuotes = false;
+                continue;
+            }
+            if (curState.insideDoubleQuotes and c == '"') {
+                curState.insideDoubleQuotes = false;
+                continue;
+            }
+            if (c == '\'') {
+                curState.insideSingleQuotes = true;
+                continue;
+            }
+            if (c == '"') {
+                curState.insideDoubleQuotes = true;
+                continue;
+            }
+            if (curState.insideDoubleQuotes or curState.insideSingleQuotes) continue;
+
+            if (c == ')') {
+                curState.openVarBracer = false;
+                currentArgument += getVariableValue(curState.curVariable);
+                curState.curVariable.clear();
+            }
+            continue;
+        }
+
         if (curState.afterEscape) {
             curState.afterEscape = false;
             if (curState.inVariable)
@@ -167,7 +194,7 @@ preProcessLine(std::string &&line, std::vector<std::vector<std::string>> &pipeLi
         }
         if (variableStop.find(c) != std::string::npos) {
             // A glob charavter
-            if (curState.inVariable) {
+            if (curState.inVariable and not curState.openVarBracer) {
                 currentArgument += getVariableValue(curState.curVariable);
                 curState.curVariable.clear();
             }
@@ -268,10 +295,18 @@ preProcessLine(std::string &&line, std::vector<std::vector<std::string>> &pipeLi
             continue;
         }
         if (curState.inVariable) {
+            if (c == '(' and curState.curVariable.empty()) {
+                curState.openVarBracer = true;
+            }
             curState.curVariable.push_back(c);
         } else {
             currentArgument.push_back(c);
         }
+    }
+
+    if (curState.openVarBracer or curState.insideDoubleQuotes or curState.insideSingleQuotes) {
+        std::cerr << "Error while parsing line. Not close scope" << std::endl;
+        return -1;
     }
 
     if (not curState.curVariable.empty()) {

@@ -15,6 +15,11 @@ int runChildProcess(const char *path, char *const *argv, char *const *envp, int 
         return -1;
     }
     if (pid == 0) {
+        if (leave) {
+            close(0);
+            close(1);
+            close(2);
+        }
         if (inPipeIn != 0)
             close(inPipeIn);
         if (outPipeOut != 1)
