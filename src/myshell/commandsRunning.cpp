@@ -66,7 +66,10 @@ void processInputLine(std::vector<std::vector<std::string>> &pipeLineBlocks,
 
 
     for (int i = 0; i < (pipeLineBlocks.size() - 1); i++) {
-        pipe(p);
+        if (pipe(p) != 0) {
+            std::cerr << "Could not create a pipe" << std::endl;
+            continue;
+        };
         pids.push_back(processOneBlock(pipeLineBlocks[i], prevP[1], prevP[0], p[1], p[0], filesRedirection[i]));
         if (prevP[0] != 0) close(prevP[0]);
         if (prevP[1] != 0) close(prevP[1]);
