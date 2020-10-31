@@ -6,7 +6,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <iostream>
-#include <myshell/utils.h>
+#include <myshell/utilities.h>
 #include "myshell/commandsRunning.h"
 #include <filesystem>
 #include <fcntl.h>

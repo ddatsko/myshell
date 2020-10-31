@@ -3,7 +3,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <fstream>
-#include <myshell/utils.h>
+#include <myshell/utilities.h>
 #include "myshell/environment.h"
 #include "myshell/commandsRunning.h"
 

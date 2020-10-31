@@ -20,7 +20,7 @@ find_library(readline readline REQUIRED)
 
 
 # MYSHELL
-add_executable(myshell src/myshell/main.cpp include/myshell/environment.h src/myshell/builtInCommands.cpp include/myshell/builtInCommands.h src/myshell/environment.cpp include/myshell/utils.h src/myshell/utils.cpp include/myshell/commandsRunning.h src/myshell/commandsRunning.cpp)
+add_executable(myshell src/myshell/main.cpp include/myshell/environment.h src/myshell/builtInCommands.cpp include/myshell/builtInCommands.h src/myshell/environment.cpp include/myshell/utilities.h src/myshell/utilities.cpp include/myshell/commandsRunning.h src/myshell/commandsRunning.cpp src/myshell/Logger.cpp include/myshell/Logger.h)
 target_link_libraries(myshell readline)
 
 # MYCAT

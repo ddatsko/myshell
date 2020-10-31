@@ -4,7 +4,7 @@
 #include <map>
 #include "myshell/environment.h"
 #include <iostream>
-#include <myshell/utils.h>
+#include <myshell/utilities.h>
 #include "myshell/builtInCommands.h"
 
 int runChildProcess(const char *path, char *const *argv, char *const *envp, int inPipeIn, int inPipeOut, int outPipeIn,

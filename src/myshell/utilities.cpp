@@ -1,10 +1,29 @@
-#include "myshell/utils.h"
+#include "myshell/utilities.h"
 #include <myshell/environment.h>
 #include <glob.h>
 #include <map>
 #include <iostream>
 #include <fcntl.h>
 #include <unistd.h>
+
+
+int writeBuf(int fd, const char *buf, int size) {
+    ssize_t writtenBytes = 0;
+
+    if (buf == nullptr) return -1;
+    while (writtenBytes < size) {
+        ssize_t writtenNow = write(fd, buf + writtenBytes, size - writtenBytes);
+        if (writtenNow == -1) {
+            if (errno == EINTR) continue;
+            else {
+                return errno;
+            }
+        }
+        writtenBytes += writtenNow;
+    }
+    return 0;
+}
+
 
 
 int isValidFd(int fd) {
