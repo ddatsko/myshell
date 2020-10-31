@@ -11,7 +11,10 @@
 #include <filesystem>
 #include <fcntl.h>
 
+#define MAX_VAR_LINE 4096
+
 std::map<std::string, std::string> childEnvp;
+char tempFileTemplate[] = "/tmp/myshellXXXXXXXXXX";
 
 
 void exportVariable(std::string varName) {
@@ -59,7 +62,7 @@ ssize_t readBuf(int fd, char *buf, ssize_t size, int *status) {
     return readBytes;
 }
 
-char buf[4096];
+char buf[MAX_VAR_LINE];
 
 std::string getVariableValue(std::string varName) {
     if (!varName.empty()) {
@@ -70,9 +73,7 @@ std::string getVariableValue(std::string varName) {
             std::vector<std::map<std::string, std::string>> filesRedirection;
             preProcessLine(varName + "", pipelineBlocks, filesRedirection);
 
-            char filename[L_tmpnam];
-            std::tmpnam(filename);
-            int temp = open(filename, O_CREAT | O_RDWR | O_TRUNC);
+            int temp = mkstemp(tempFileTemplate);
 
 
             int reserveFd = dup(1);
@@ -87,7 +88,7 @@ std::string getVariableValue(std::string varName) {
             lseek(temp, 0, 0);
 
             int status;
-            readBuf(temp, buf, 4095, &status);
+            readBuf(temp, buf, MAX_VAR_LINE - 1, &status);
             close(temp);
             return std::string(buf);
         }
